@@ -1,0 +1,51 @@
+BugzillaClient(3)     User Contributed Perl Documentation    BugzillaClient(3)
+
+
+
+NNAAMMEE
+       SUSE::BugzillaClient - A Client Library for accessing a bugzilla
+       server.
+
+DDEESSCCRRIIPPTTIIOONN
+       SUSE::BugzillaClient is a client Library for accessing a bugzilla
+       server.  Note: The server has to support XML output (&ctype=xml).  It
+       can query bugs by ID or the URL of a search. It returns a hash for each
+       bug that contains the bugs properties.
+
+SSYYNNOOPPSSIISS
+       use SUSE::BugzillaClient;
+
+       #login to bugzilla my $jar = bzConnect( 'username','pw' );
+
+       #call query methods with the $jar object
+
+       #do something meaningful with the result, see BugzillaClientTest.pl
+
+MMEETTHHOODDSS
+       bbzzCCoonnnneecctt( $user, $pass )
+           Login to standard bugzilla and get the cookie $jar
+
+       ggeettBBuugg( $jar, $bugid )
+           Get a bug by id, returns a bug hash with the following content: (
+           "bug_id", "creation_ts", "short_desc", "delta_ts", "product",
+           "component", "version", "rep_platform", "op_sys", "bug_status",
+           "priority", "bug_severity", "target_milestone", "resolution" )
+
+       ggeettBBuuggss( $jar, $url )
+           Get a list of bug hashes by providing a search url (like
+           https://bugzilla.novell.com/buglist.cgi?query_format=advanced&product=openSUSE+10.3&bug_status=NEEDINFO)
+
+       ggeettBBuuggssCCSSVV( $jar, $url )
+           Get a list of bug hashes by providing a CSV search url (like
+           https://bugzilla.novell.com/buglist.cgi?query_format=advanced&product=openSUSE+10.3&bug_status=NEEDINFO&ctype=csv,
+           get this URL from the "CSV" link on the bottom of the search result
+           page)
+
+           Faster than using _g_e_t_B_u_g_s_(_) because not all XML output has to be
+           parsed, but only these fields will be available in the bug hashes:
+           bug_id, changeddate, bug_severity, priority, assigned_to, reporter,
+           bug_status, product, short_short_desc (!)
+
+
+
+perl v5.14.2                      2012-02-27                 BugzillaClient(3)

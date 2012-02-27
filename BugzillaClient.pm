@@ -47,10 +47,7 @@ that contains the bugs properties.
 
 use SUSE::BugzillaClient;
     
-#login to Novell bugzilla
-my $jar = bzBasicAuthConnect( 'username','pw' );
-
-#or login to upstream bugzilla installation
+#login to bugzilla
 my $jar = bzConnect( 'username','pw' );
 
 #call query methods with the $jar object
