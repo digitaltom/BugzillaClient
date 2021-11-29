@@ -60,13 +60,14 @@ my $jar = bzConnect( 'username','pw' );
 
 =cut
 
-@BugzillaClient::EXPORT = qw( bzConnect getBug getBugs getBugsByIDList getBugsCSV getBugIds $bzDebug $bzBaseUrl $bzCookieDir $bzRecover %bzErrors);
+@BugzillaClient::EXPORT = qw( bzConnect getBug getBugs getBugsByIDList getBugsCSV getBugIds $bzDebug $bzHostname $bzBaseUrl $bzCookieDir $bzRecover %bzErrors);
 
-use vars qw(%gbug $gelem $bzDebug $bzBaseUrl $bzCookieDir $bzRecover %bzErrors);
+use vars qw(%gbug $gelem $bzDebug $bzHostname $bzBaseUrl $bzCookieDir $bzRecover %bzErrors);
 
 $bzDebug = 0;
 $bzCookieDir = "/tmp";
-$bzBaseUrl = "https://bugzilla.novell.com";
+$bzHostname = "bugzilla.suse.com";
+$bzBaseUrl = "https://$bzHostname";
 my $useragent = "BugzillaClient/0.1";
 
 
@@ -85,12 +86,15 @@ sub bzConnect {
   my $jar = HTTP::Cookies->new(file => "$bzCookieDir/lwpcookies.txt",
 			         	autosave => 1, ignore_discard => 1 );
   $ua->cookie_jar( $jar );
-	
-  my $req = HTTP::Request->new(POST => $bzBaseUrl . '/index.cgi' );
-  $req->content_type('application/x-www-form-urlencoded');
-  $req->content("Bugzilla_login=$user&Bugzilla_password=$pass");
+
+  #old variant using POST with basic auth
+  #my $req = HTTP::Request->new(POST => $bzBaseUrl . '/index.cgi' );
+  #$req->content_type('application/x-www-form-urlencoded');
+  #$req->content("Bugzilla_login=$user&Bugzilla_password=$pass");
+  #new variant using GET with inline auth
+  my $req = HTTP::Request->new(GET => "https://$user:$pass\@$bzHostname");
   my $res = $ua->request($req);
-	
+
   if ( $res->is_success && (my $cookie = $res->header('Set-Cookie')) ) {
     return $jar;
 
@@ -110,10 +114,10 @@ sub handle_start {
 	if ($elem eq "bug"){
 		debug("Starting new Bug Element: " . $elem . "\n");
 		%gbug = ();
-		foreach my $valid ( "bug_id", "creation_ts", "short_desc", "delta_ts", 
-			"classification", "product", "component", "version", "rep_platform", "op_sys", 
-			"bug_status", "priority", "bug_severity", "target_milestone", "resolution", 
-			"infoprovider", "assigned_to", "reporter", "qa_contact", "group", "status_whiteboard","cf_partnerid") {
+		foreach my $valid ( "bug_id", "creation_ts", "short_desc", "delta_ts",
+			"classification", "product", "component", "version", "rep_platform", "op_sys",
+			"bug_status", "priority", "bug_severity", "target_milestone", "resolution",
+			"infoprovider", "assigned_to", "reporter", "qa_contact", "group", "status_whiteboard", "cf_partnerid") {
       		$gbug{$valid} = "";
 		}
     	} else {
@@ -182,7 +186,7 @@ sub getBug($$) {
 
 =item B<getBugs>( $jar, $url )
 
-Get a list of bug hashes by providing a search url (like https://bugzilla.novell.com/buglist.cgi?query_format=advanced&product=openSUSE+10.3&bug_status=NEEDINFO)
+Get a list of bug hashes by providing a search url (like https://bugzilla.suse.com/buglist.cgi?query_format=advanced&product=openSUSE+10.3&bug_status=NEEDINFO)
 
 =cut
 # ----------------------------------------------------------------------------
@@ -200,7 +204,7 @@ sub getBugsByIDList($@) {
 
 sub _getBugsByIDList {
 	my ($jar, @buglist) = @_;
-	
+
 	if (!@buglist) {
 		return ();
 	}
@@ -225,7 +229,7 @@ sub _getBugsByIDList {
 
 	#workaround for illegal characters: 
 	$bugstr =~ s/[\x00-\x08\x0B\x0C\x0E-\x1F]/ /g;
-    
+
 	eval {
 		$p2->parse( $bugstr );
 		if (!@{$p2->{bugs}}) {
@@ -250,34 +254,32 @@ sub _getBugsByIDList {
 	return @{$p2->{bugs}};
 }
 
-
-
 # Get an Array of Bugs that are shown on the provided Query-Page. 
 # WARNING: This Method relies on the HTML Output Format 
-# of Novell Bugzillas Query-Result-Page !!
+# of SUSE Bugzillas Query-Result-Page !!
 
 sub getBugIds($$) {
-    my ($jar, $url) = @_;
-    my $bugstr = getUrl($jar, $url); 
+	my ($jar, $url) = @_;
+	my $bugstr = getUrl($jar, $url);
 	my @bugids;
 
-	if( $bugstr =~ m/<a href="show_bug.cgi\?id=\d+">/ )
-	{
-	    while( $bugstr =~ m/<a href="show_bug.cgi\?id=(\d+)">/g )
-	    {
-		push @bugids, $1;
-	    }
+	if( $bugstr =~ /<form method="post" action="show_bug.cgi">\s*?<input type="hidden" name="ctype" value="xml">(.*?)<\/form>/s ) {
+		my $ids = $1;
 
-	    debug("found " . @bugids . " BugIds for your Query.\n");
+		while( $ids =~ m/<input type="hidden" name="id" value="(\d+)">/g ) {
+			push @bugids, $1;
+		}
+
+		debug("found " . @bugids . " BugIds for your Query.\n");
 	    
 	} elsif ($bugstr =~ /Your search did not return any results/s) {
-                debug("Your search did not return any results.\n");
+		debug("Your search did not return any results.\n");
 
-        } else {
-                print "Cannot fetch Bugids from Bugzilla Search Page.\n";
-                print "Maybe the HTML-Code has changed :-(.\n";
-        }
-        return @bugids;
+	} else {
+		print "Cannot fetch Bugids from Bugzilla Search Page.\n";
+		print "Maybe the HTML-Code has changed :-(.\n";
+	}
+	return @bugids;
 }
 
 
@@ -286,7 +288,7 @@ sub getBugIds($$) {
 
 =item B<getBugsCSV>( $jar, $url )
 
-Get a list of bug hashes by providing a CSV search url (like https://bugzilla.novell.com/buglist.cgi?query_format=advanced&product=openSUSE+10.3&bug_status=NEEDINFO&ctype=csv, get this URL from the "CSV" link on the bottom of the search result page)
+Get a list of bug hashes by providing a CSV search url (like https://bugzilla.suse.com/buglist.cgi?query_format=advanced&product=openSUSE+10.3&bug_status=NEEDINFO&ctype=csv, get this URL from the "CSV" link on the bottom of the search result page)
 
 Faster than using getBugs() because not all XML output has to be parsed, but only these fields will be 
 available in the bug hashes: 
