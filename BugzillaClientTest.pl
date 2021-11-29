@@ -5,8 +5,8 @@ use strict;
 
 $BugzillaClient::bzDebug = 0;
 
-#login to novell bugzilla:
-my $jar = BugzillaClient::bzConnect( 'Digitaltom','' );
+#login to suse bugzilla:
+my $jar = BugzillaClient::bzConnect( 'digitaltomm','' );
 
 #login to another bugzilla
 #$SUSE::BugzillaClient::bzBaseUrl = "http://bugs.otrs.org/";
@@ -21,7 +21,7 @@ print "Bugs short Desc: " . $bug->{short_desc} . "\n";
 # (Copy the Query URL from your Browser)
 
 print "Querying list of Bugs: \n";
-my $query = "https://bugzilla.novell.com/buglist.cgi?query_format=advanced&product=openSUSE.org&bug_status=NEEDINFO";
+my $query = "https://bugzilla.suse.com/buglist.cgi?query_format=advanced&product=openSUSE.org&bug_status=NEEDINFO";
 
 my @bugs = BugzillaClient::getBugs($jar, $query);
 
@@ -35,7 +35,7 @@ foreach my $bug (@bugs){
 # Fetching by CSV is much faster, but does not contain all the fields as getBugs()
 
 print "Getting Bugs by parsing CSV: \n";
-my $query = "https://bugzilla.novell.com/buglist.cgi?query_format=advanced&product=openSUSE+10.3&bug_status=NEEDINFO&ctype=csv";
+my $query = "https://bugzilla.suse.com/buglist.cgi?query_format=advanced&product=openSUSE+10.3&bug_status=NEEDINFO&ctype=csv";
 
 my @bugs = BugzillaClient::getBugsCSV($jar, $query);
 

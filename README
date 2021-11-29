@@ -1,7 +1,6 @@
 BugzillaClient(3)     User Contributed Perl Documentation    BugzillaClient(3)
 
 
-
 NAME
        SUSE::BugzillaClient - A Client Library for accessing a bugzilla
        server.
@@ -47,5 +46,3 @@ METHODS
            bug_status, product, short_short_desc (!)
 
 
-
-perl v5.14.2                      2012-02-27                 BugzillaClient(3)
